@@ -2,35 +2,23 @@ import requests
 import boto3
 import os
 
-def get_gold_price():
-    url = "https://www.goldapi.io/api/XAU/USD"
+def lambda_handler(event, context):
+    url = "https://www.goldapi.io/api/XAU/INR"   # INR PRICE
     headers = {
         "x-access-token": os.getenv("GOLD_API_KEY"),
         "Content-Type": "application/json"
     }
 
-    response = requests.get(url, headers=headers, timeout=10)
+    response = requests.get(url, headers=headers)
     data = response.json()
 
-    return data["price"]   # Based on screenshot
+    gold_price_inr = data["price"]  # price in INR
 
-def send_to_sns(price):
-    sns_client = boto3.client(
-        "sns",
-        region_name=os.getenv("AWS_REGION")
-    )
-
-    sns_client.publish(
+    sns = boto3.client("sns", region_name=os.getenv("AWS_REGION"))
+    sns.publish(
         TopicArn=os.getenv("SNS_TOPIC_ARN"),
-        Message=f"Current Gold Price (USD): {price}",
-        Subject="Gold Price Update"
+        Subject="Gold Price Update (INR)",
+        Message=f"Current Gold Price (INR): {gold_price_inr}"
     )
 
-if __name__ == "__main__":
-    try:
-        price = get_gold_price()
-        print("Gold Price:", price)
-        send_to_sns(price)
-        print("SNS Notification Sent.")
-    except Exception as e:
-        print("Error:", str(e))
+    return {"status": "Success"}
